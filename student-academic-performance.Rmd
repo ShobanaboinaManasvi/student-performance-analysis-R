@@ -7,10 +7,10 @@ output:
   pdf_document: default
 ---
 
-{r setup, include=FALSE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
+```
 
 ## Summary
 
@@ -35,7 +35,7 @@ The hypothesis assumes that higher levels of education for both parents (represe
 The dataset has been retrieved from Kaggle.com website. It includes:
 
 
-{r echo=FALSE}
+```{r echo=FALSE}
 # Libraries
 #install.packages("tidyquant")
 library(ggplot2) # Plotting visualization
@@ -43,33 +43,35 @@ library(tidyverse)
 library(randomForest) # Random Forest
 library(glmnet) # Ridge regression
 library(data.table)
+```
 
 
 
 
-{r echo=FALSE}
+``` {r echo=FALSE}
 Port_course <- read.csv("/kaggle/input/student-performance-data-set/student-por.csv", sep = ",", header = TRUE)
 Math_course <- read.csv("/kaggle/input/math-students/student-mat.csv", sep = ",", header = TRUE)
 dataset <- rbind(Math_course, Port_course)
 selected_cols <- c("Fedu", "Medu", "G3")
 data <- dataset[, selected_cols]
+```
 
                                                                          
 First we factorize the variables
-{r}
+``` {r}
 for (col in c("Fedu", "Medu")) {
   data[[col]] <- as.factor(data[[col]])
 }
+```
 
 visualise the transformed data
                                                                          
-{r}
+```{r}
 ggplot(data = data, aes(x = Fedu, y = Medu, color = G3)) +
   geom_point() +
   labs(x = "Father's Education", y = "Mother's Education", color = "Grade (G3)") +
   ggtitle("Transformed Data")
-
-
+```
 
 ## Methodology
 
@@ -77,55 +79,56 @@ With data having been cleaned, next will involve working with the dataset for ex
 
 we will then split the data into testing(0.3) and training data sets(0.7)
                                                                          
-{r}
+```{r}
 set.seed(2022)
 train_indices <- sample(1:nrow(data), floor(0.7 * nrow(data)))
 train_data <- data[train_indices, ]
 test_data <- data[-train_indices, ]
-
+```
 
 
 Next, we perform linear regression
 
-{r}
+```{r}
 
 linear_model <- lm(G3 ~ ., data = train_data)
 linear_pred <- predict(linear_model, newdata = test_data)
-
+```
 
 Next we perform ridge regression
 
 
-{r}
+```{r}
 x_train <- model.matrix(G3 ~ ., train_data)[, -1]
 x_test <- model.matrix(G3 ~ ., test_data)[, -1]
 
 cv_ridge <- cv.glmnet(x_train, train_data$G3, alpha = 0)
 ridge_model <- glmnet(x_train, train_data$G3, alpha = 0, lambda = cv_ridge$lambda.min)
 ridge_pred <- predict(ridge_model, newx = x_test)
+```
 
 Next, an analysis random forest
 
-{r}
+```{r}
 
 rf_model <- randomForest(G3 ~ ., data = train_data)
 rf_pred <- predict(rf_model, newdata = test_data)
-
+```
 
 
 calculate RMSE 
                                                                          
-{r}
+```{r}
 rmse_linear <- sqrt(mean((test_data$G3 - linear_pred)^2))
 rmse_ridge <- sqrt(mean((test_data$G3 - ridge_pred)^2))
 rmse_rf <- sqrt(mean((test_data$G3 - rf_pred)^2))
-
+```
                                                                          
 Feature Importance Analysis - Random Forest
 Linear Regression - Residual Analysis
 Plotting Residuals vs. Fitted Values - Linear Regression
                                                                          
-{r}
+```{r}
 linear_metrics <- data.frame(
   R_squared = summary(linear_model)$r.squared,
   Adj_R_squared = summary(linear_model)$adj.r.squared,
@@ -143,13 +146,13 @@ rf_metrics <- data.frame(
   Adj_R_squared = 1 - (1 - cor(test_data$G3, rf_pred)^2) * ((length(test_data$G3) - 1)/(length(test_data$G3) - rf_model$ntree - 1)),
   MAE = mean(abs(test_data$G3 - rf_pred))
 )
-
+```
 
 ## Results
 
  The analysis provided information regarding the objective of this paper.According to the research, parental education significantly affects how students turn out. The study deepens our understanding of educational inequities and offers guidance to educators and policymakers in developing solutions that support equity and improve student performance.
 
-{r echo=FALSE}
+```{r echo=FALSE}
 
 ggplot(data = test_data, aes(x = G3, y = linear_pred)) +
   geom_point(color = "blue") +
